@@ -197,6 +197,31 @@ class ChallengeContent(models.Model):
         return self.content_i18n
 
 
+class Post(models.Model):
+    title = models.CharField(max_length=255)
+    is_published = models.BooleanField(default=False)
+
+    i18n = TranslationField(fields=("title",))
+
+    def __str__(self):
+        return self.title
+
+
+class Comment(models.Model):
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        limit_choices_to={"is_published": True},
+        related_name="comments",
+    )
+    text = models.TextField()
+
+    i18n = TranslationField(fields=("text",))
+
+    def __str__(self):
+        return self.text
+
+
 class Organization(models.Model):
     """Model using a custom default language per instance/record."""
 
