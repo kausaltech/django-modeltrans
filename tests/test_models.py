@@ -1,4 +1,3 @@
-from django import VERSION as DJANGO_VERSION
 from django.core.exceptions import ValidationError
 from django.db import DataError, models, transaction
 from django.test import TestCase, override_settings
@@ -15,6 +14,7 @@ from .app.models import (
     Department,
     NullableTextModel,
     Organization,
+    TaggedBlog,
     TextModel,
 )
 from .utils import CreateTestModel
@@ -170,7 +170,24 @@ class TranslatedFieldTest(TestCase):
         with override("fr"):
             self.assertEqual(m.description_i18n, DESCRIPTION)
 
-    def test_creating_using_virtual_global_default_language_field(self):
+    def test_fallback_getting_JSONField(self):
+        m = TaggedBlog.objects.create(title="Falcon", tags=["bird", "raptor"])
+        with override("de"):
+            # tags_de is not set, return fallback
+            self.assertEqual(m.tags_i18n, ["bird", "raptor"])
+
+        m = TaggedBlog.objects.create(title="Falcon", tags_fr=[])
+        with override("fr"):
+            # tags_fr is set, return the empty list
+            self.assertEqual(m.tags_i18n, [])
+
+        m = TaggedBlog.objects.create(title="Falcon", tags_fr=None)
+        with override("fr"):
+            # tags_fr is set to None, return field default (which is
+            # an empty list)
+            self.assertEqual(m.tags_i18n, [])
+
+    def test_creating_using_virtual_default_language_field(self):
         m = Blog.objects.create(title_en="Falcon")
 
         self.assertEqual(m.title, "Falcon")
@@ -196,18 +213,11 @@ class TranslatedFieldTest(TestCase):
         Blogs have titles, not names, so trying to add something with a name
         should raise an eror.
         """
-        if DJANGO_VERSION < (4, 1):
-            expected_message = "Blog() got an unexpected keyword argument 'name'"
-        else:
-            expected_message = "Blog() got unexpected keyword arguments: 'name'"
-
+        expected_message = "Blog() got unexpected keyword arguments: 'name'"
         with self.assertRaisesMessage(TypeError, expected_message):
             Blog.objects.create(name="Falcon")
 
-        if DJANGO_VERSION < (4, 1):
-            expected_message = "Blog() got an unexpected keyword argument 'name_nl'"
-        else:
-            expected_message = "Blog() got unexpected keyword arguments: 'name_nl'"
+        expected_message = "Blog() got unexpected keyword arguments: 'name_nl'"
         with self.assertRaisesMessage(TypeError, expected_message):
             Blog.objects.create(title="Falcon", name_nl="Valk")
 

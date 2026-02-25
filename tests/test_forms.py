@@ -240,6 +240,26 @@ class TranslationModelFormTestCase(TestCase):
             self.assertEqual(title_fr_field.required, True)
             self.assertEqual(title_fr_field.widget.__class__, forms.widgets.Textarea)
 
+    def test_translated_field_labels(self):
+        """Test that a field's verbose_name is translated to the currently active language."""
+        form_cls = modelform_factory(Post, fields="__all__")
+        form = form_cls()
+        self.assertEqual(form.fields["title"].label, "Title of the post")
+        self.assertEqual(form.fields["title_de"].label, "Title of the post (DE)")
+        self.assertEqual(form.fields["title_fr"].label, "Title of the post (FR)")
+
+        with override("de"):
+            form = form_cls()
+            self.assertEqual(form.fields["title"].label, "Titel des Beitrags")
+            self.assertEqual(form.fields["title_de"].label, "Titel des Beitrags (DE)")
+            self.assertEqual(form.fields["title_fr"].label, "Titel des Beitrags (FR)")
+
+        with override("fr"):
+            form = form_cls()
+            self.assertEqual(form.fields["title"].label, "Titre de l'article")
+            self.assertEqual(form.fields["title_de"].label, "Titre de l'article (DE)")
+            self.assertEqual(form.fields["title_fr"].label, "Titre de l'article (FR)")
+
     def test_form_initial_values(self):
         challenge = Challenge.objects.create(title="english", title_fr="french")
         initial_data = {
@@ -262,7 +282,8 @@ class TranslationModelFormTestCase(TestCase):
 
             self.assertEqual(form["title"].initial, initial_data["title"])
             self.assertEqual(form["title_fr"].initial, initial_data["title_fr"])
-            self.assertIsNone(form["header"].initial)
+            # Empty initial data is always None
+            self.assertEqual(form["header"].initial, None)
             self.assertEqual(form["header_fr"].initial, initial_data["header_fr"])
             self.assertEqual(form["default_language"].initial, get_default_language())
 
@@ -271,7 +292,7 @@ class TranslationModelFormTestCase(TestCase):
 
             self.assertEqual(form["title"].initial, initial_data["title"])
             self.assertEqual(form["title_fr"].initial, initial_data["title_fr"])
-            self.assertIsNone(form["header"].initial)
+            self.assertEqual(form["header"].initial, "")
             self.assertEqual(form["header_fr"].initial, initial_data["header_fr"])
             self.assertEqual(form["default_language"].initial, get_default_language())
 
@@ -282,7 +303,7 @@ class TranslationModelFormTestCase(TestCase):
             self.assertTrue(form.is_valid())
             challenge = form.save()
             self.assertEqual(challenge.title, data["title"])
-            self.assertIsNone(challenge.header)
+            self.assertEqual(challenge.header, "")
 
             data = {"start_date": "2021-01-01", "end_date": "2021-02-02", "title_fr": "Un title"}
             form = ExcludeForm(data=data)
@@ -290,7 +311,7 @@ class TranslationModelFormTestCase(TestCase):
             challenge = form.save()
             self.assertEqual(challenge.title, "")
             self.assertEqual(challenge.title_fr, data["title_fr"])
-            self.assertIsNone(challenge.header)
+            self.assertEqual(challenge.header, "")
 
         with self.subTest("Test that only fallback is required"):
             data = {"start_date": "2021-01-01", "end_date": "2021-02-02"}
@@ -315,9 +336,9 @@ class TranslationModelFormTestCase(TestCase):
             challenge = form.save()
             self.assertEqual(challenge.title_nl, data["title_nl"])
             self.assertEqual(challenge.title_de, data["title_de"])
-            self.assertIsNone(challenge.title_fr)
+            self.assertEqual(challenge.title_fr, "")
             self.assertEqual(challenge.title, "")
-            self.assertIsNone(challenge.header)
+            self.assertEqual(challenge.header, "")
 
             data = {
                 "start_date": "2021-01-01",
@@ -330,9 +351,9 @@ class TranslationModelFormTestCase(TestCase):
             challenge = form.save()
             self.assertEqual(challenge.title_nl, data["title_nl"])
             self.assertEqual(challenge.title_fr, data["title_fr"])
-            self.assertIsNone(challenge.title_de)
+            self.assertEqual(challenge.title_de, "")
             self.assertEqual(challenge.title, "")
-            self.assertIsNone(challenge.header)
+            self.assertEqual(challenge.header, "")
 
         with self.subTest("Update existing instance"):
             challenge = Challenge.objects.create(

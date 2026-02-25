@@ -1,4 +1,4 @@
-from django import VERSION as DJANGO_VERSION
+import django
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import models
 from django.test import TestCase
@@ -35,6 +35,7 @@ class Translating_utils(TestCase):
         expected = {
             app_models.Article,
             app_models.Blog,
+            app_models.TaggedBlog,
             app_models.ChildArticle,
             app_models.Category,
             app_models.Person,
@@ -72,7 +73,8 @@ class TranslateModelTest(TestCase):
             body = models.CharField(max_length=100)
 
             i18n = TranslationField(
-                fields=("title", "body"), required_languages={"body": ["nl"], "title": ["fr", "nl"]}
+                fields=("title", "body"),
+                required_languages={"body": ["nl"], "title": ["fr", "nl"]},
             )
 
             class Meta:
@@ -229,11 +231,7 @@ class TranslateModelTest(TestCase):
         self.assertFalse(hasattr(m, "title_i18n"))
         self.assertFalse(hasattr(m, "title_en"))
 
-        if DJANGO_VERSION < (4, 1):
-            expected_message = "TestModel4() got an unexpected keyword argument 'title_nl'"
-        else:
-            expected_message = "TestModel4() got unexpected keyword arguments: 'title_nl'"
-
+        expected_message = "TestModel4() got unexpected keyword arguments: 'title_nl'"
         with self.assertRaisesMessage(TypeError, expected_message):
             TestModel4(title="bar", title_nl="foo")
 
@@ -295,9 +293,12 @@ class TranslateModelTest(TestCase):
         comment = app_models.Comment.objects.create(post=published_post, text="foo")
         self.assertIsNotNone(comment.pk)
 
-        with self.assertRaisesMessage(
-            ValidationError,
-            f"post instance with id {unpublished_post.pk} does not exist",
-        ):
+        # Remove if we no longer support Django 4.2, Django 5.1
+        if django.get_version() >= "5.2":
+            expected = f"post instance with id {unpublished_post.pk} is not a valid choice."
+        else:
+            expected = f"post instance with id {unpublished_post.pk} does not exist"
+
+        with self.assertRaisesMessage(ValidationError, expected):
             comment.post = unpublished_post
             comment.full_clean()

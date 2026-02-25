@@ -11,7 +11,7 @@ The inner workings are illustrated using this model::
 
     class Blog(models.Model):
         title = models.CharField(max_length=255)
-        body = models.TextField(null=True)
+        body = models.TextField(blank=True)
 
         i18n = TranslationField(fields=("title", "body"))
 
@@ -76,7 +76,7 @@ language is defined::
     # 'Valk', None
 
 The virtual field ``<field>_i18n`` returns the translated value for the current
-active language and falls back to the language in ``LANGUAGE_CODE``::
+active language and falls back to the language in ``MODELTRANS_DEFAULT_LANGUAGE``::
 
     with override("nl"):
         print(b.title_i18n)
@@ -88,7 +88,7 @@ active language and falls back to the language in ``LANGUAGE_CODE``::
 
     with override("fr"):
         print(b.title_i18n)
-    # 'Falcon' (no french translation available, falls back to LANGUAGE_CODE)
+    # 'Falcon' (no french translation available, falls back to MODELTRANS_DEFAULT_LANGUAGE)
 
 Django-modeltrans also allows ordering on translated values. Ordering on
 ``<field>_i18n`` probably makes most sense, as it more likely that there is a

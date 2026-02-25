@@ -155,7 +155,10 @@ def add_virtual_fields(Model, default_language_field, fields, required_languages
         # first, add a `<original_field_name>_i18n` virtual field to get the currently
         # active translation for a field
         field = translated_field_factory(
-            original_field=original_field, blank=True, null=True, editable=False,  # disable in admin
+            original_field=original_field,
+            blank=True,
+            null=original_field.null,
+            editable=False,  # disable in admin
             default_language_field=default_language_field,
         )
 
@@ -174,7 +177,7 @@ def add_virtual_fields(Model, default_language_field, fields, required_languages
                 original_field=original_field,
                 language=get_default_language(),
                 blank=True,
-                null=True,
+                null=original_field.null,
                 editable=False,
             )
             raise_if_field_exists(Model, field.get_field_name())
@@ -189,7 +192,7 @@ def add_virtual_fields(Model, default_language_field, fields, required_languages
                 original_field=original_field,
                 language=language,
                 blank=blank_allowed,
-                null=blank_allowed,
+                null=blank_allowed and original_field.null,
                 default_language_field=default_language_field,
             )
             raise_if_field_exists(Model, field.get_field_name())

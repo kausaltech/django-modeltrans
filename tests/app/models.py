@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.translation import gettext_lazy
 
 from modeltrans.conf import get_default_language
 from modeltrans.fields import TranslationField
@@ -40,12 +41,22 @@ class Site(models.Model):
 
 class Blog(models.Model):
     title = models.CharField(max_length=255)
-    body = models.TextField(null=True)
+    body = models.TextField(blank=True)
 
     category = models.ForeignKey(Category, null=True, blank=True, on_delete=models.CASCADE)
     site = models.ForeignKey(Site, null=True, blank=True, on_delete=models.CASCADE)
 
     i18n = TranslationField(fields=("title", "body"), required_languages=("nl",))
+
+    def __str__(self):
+        return self.title
+
+
+class TaggedBlog(models.Model):
+    title = models.CharField(max_length=255)
+    tags = JSONField(null=True, blank=True, default=list)
+
+    i18n = TranslationField(fields=("title", "tags"))
 
     def __str__(self):
         return self.title
@@ -171,7 +182,7 @@ class Challenge(models.Model):
     """Model using a custom fallback language per instance/record."""
 
     title = models.CharField(max_length=255)
-    header = models.CharField(max_length=255, null=True, blank=True)
+    header = models.CharField(max_length=255, blank=True)
 
     default_language = models.CharField(
         max_length=2, null=True, blank=True, default=get_default_language()
@@ -198,7 +209,10 @@ class ChallengeContent(models.Model):
 
 
 class Post(models.Model):
-    title = models.CharField(max_length=255)
+    title = models.CharField(
+        verbose_name=gettext_lazy("title of the post"),
+        max_length=255,
+    )
     is_published = models.BooleanField(default=False)
 
     i18n = TranslationField(fields=("title",))
